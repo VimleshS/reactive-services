@@ -8,7 +8,7 @@ import (
 	"net"
 	"os"
 
-	pb "github.com/VimleshS/self-replicating-service/protobuf"
+	pb "github.com/VimleshS/reactive-services/protobuf"
 	"google.golang.org/grpc"
 )
 
