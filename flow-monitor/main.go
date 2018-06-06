@@ -8,30 +8,31 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/VimleshS/reactive-services/kconfig"
 	pb "github.com/VimleshS/reactive-services/protobuf"
 	"google.golang.org/grpc"
-)
-
-const (
-	server        = "127.0.0.1"
-	serverPort    = "50051"
-	maxMsgLimit   = 15000
-	partitionSize = 3
 )
 
 var executingConsumer []string
 var increasedConsumer bool
 
 func main() {
+	fmt.Println(kconfig.Conf)
+	if kconfig.Conf.KafkaPath == "" {
+		log.Fatal("kafkaPath not found")
+	}
+
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	serverAddr := net.JoinHostPort(server, serverPort)
+	serverAddr := net.JoinHostPort(kconfig.Conf.GrpcServer,
+		strconv.Itoa(kconfig.Conf.GrpcServerPort))
 
 	// setup insecure connection
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
@@ -44,7 +45,7 @@ func main() {
 	kickofConsumer(client)
 	go monitorKafka(client)
 	sig := <-sigchan
-	fmt.Printf("Caught signal %v: terminating\n", sig)
+	log.Printf("Caught signal %v: terminating\n", sig)
 }
 
 func kickofConsumer(client pb.KafkaServiceClient) {
@@ -57,9 +58,12 @@ func kickofConsumer(client pb.KafkaServiceClient) {
 }
 func monitorKafka(client pb.KafkaServiceClient) {
 	for {
-		totalpendingMessage := calculateLag()
-		log.Printf("Pending message %d and executing consumers %v \n", totalpendingMessage, executingConsumer)
-		if totalpendingMessage > maxMsgLimit && len(executingConsumer) < partitionSize {
+		totalpendingMessage := offsetLagFromKafkaConsumerGrp()
+		log.Printf("Pending message %d and executing consumers %v \n",
+			totalpendingMessage, executingConsumer)
+
+		if pendingMsgExceedLimit(totalpendingMessage) &&
+			consumerBelowThreshhold(len(executingConsumer)) {
 			consumer, err := client.StartNewConsumer(context.Background(), &pb.Empty{})
 			if err != nil {
 				log.Fatal(err)
@@ -67,9 +71,8 @@ func monitorKafka(client pb.KafkaServiceClient) {
 			log.Printf("%s added consumer to share workload \n", consumer.Name)
 			executingConsumer = append(executingConsumer, consumer.Name)
 			increasedConsumer = true
-		} else if totalpendingMessage <= maxMsgLimit && increasedConsumer {
-
-			fmt.Println(executingConsumer)
+		} else if msgInLimit(totalpendingMessage) && increasedConsumer {
+			log.Printf("Consumers %v \n", executingConsumer)
 			//remove consumer
 			if len(executingConsumer) >= 2 {
 				toRemove := executingConsumer[0]
@@ -82,19 +85,29 @@ func monitorKafka(client pb.KafkaServiceClient) {
 				log.Printf("%s removed consumer \n", consumer.Name)
 			}
 		}
-		// fmt.Println("------------------------")
-		// consumerList, err := client.GetConsumerList(context.Background(), &pb.Empty{})
-		// for _, c := range consumerList.Items {
-		// 	fmt.Println(c.Name)
-		// }
 		time.Sleep(time.Duration(5 * time.Second))
 	}
 }
+func pendingMsgExceedLimit(pendingMsg int) bool {
+	return pendingMsg > kconfig.Conf.MaxMsgLimit
+}
+
+func msgInLimit(pendingMsg int) bool {
+	return pendingMsg <= kconfig.Conf.MaxMsgLimit
+}
+
+func consumerBelowThreshhold(nosOfConsumers int) bool {
+	return nosOfConsumers < kconfig.Conf.PartitionSize
+}
 
 //Not finding a elegant way to calculate offset lag and hence using a shell command.
-func calculateLag() int {
-	out, err := exec.Command("/home/synerzip/workspace/kafka/kafka_2.11-1.1.0/bin/kafka-consumer-groups.sh",
-		"--bootstrap-server", "localhost:9092", "--group", "g1", "--describe").Output()
+func offsetLagFromKafkaConsumerGrp() int {
+	kafkaShPath := path.Join(kconfig.Conf.KafkaPath, "kafka-consumer-groups.sh")
+	// out, err := exec.Command("/home/synerzip/workspace/kafka/kafka_2.11-1.1.0/bin/kafka-consumer-groups.sh",
+	// 	"--bootstrap-server", "localhost:9092", "--group", "g1", "--describe").Output()
+
+	// args := []string{"--bootstrap-server", "localhost:9092", "--group", "g1", "--describe"}
+	out, err := exec.Command(kafkaShPath, kconfig.Conf.BootSevers()...).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,7 +126,6 @@ func calculateLag() int {
 			fmt.Println(t)
 			fmt.Println(err)
 		}
-		// fmt.Println(lag)
 	}
 	return totallag
 }
