@@ -1,0 +1,31 @@
+syntax = "proto3";
+package protobuf;
+
+service KafkaService {
+    // GetCurrencyList  returns matching Currency values as list
+    // Example of a unary call
+    rpc GetConsumerList(Empty) returns (ConsumerList){}
+
+    // GetCurrencyStream returns matching Currencies as a server stream
+    // Example of using server to client stream.
+    rpc StartNewConsumer(Empty) returns (Consumer){}
+
+    // SaveCurrencyStream sends multiple currencies to server to be saved
+    // returns a list of saved currency.
+    // Example of using client stream to server.
+    rpc KillConsumer(Consumer) returns (Consumer){}
+}
+
+// Currency represents currency information
+message Consumer {
+    string name = 1;
+}
+
+// CurrencyList used for list of currencies
+message ConsumerList {
+    repeated Consumer items = 1;
+}
+
+message Empty {
+}
+
