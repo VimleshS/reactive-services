@@ -68,7 +68,7 @@ func monitorKafka(client pb.KafkaServiceClient) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Printf("%s added consumer to share workload \n", consumer.Name)
+			log.Printf("Consumer '%s' is added to share workload \n", consumer.Name)
 			executingConsumer = append(executingConsumer, consumer.Name)
 			increasedConsumer = true
 		} else if msgInLimit(totalpendingMessage) && increasedConsumer {
