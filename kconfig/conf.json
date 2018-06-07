@@ -4,8 +4,8 @@
     "kafkaPath" :"/home/synerzip/workspace/kafka/kafka_2.11-1.1.0/bin/",
 	"maxMsgLimit": 15000,
     "partitionSize": 3,
-    "consumerGroup": "g1",
-    "topic": "ntest",
+    "consumerGroup": "consumer-g1",
+    "topic": "my-replicated-topic",
     "bootStrapServer": "localhost:9092,localhost:9093,localhost:9094",
     "flowMonitorPollTime": 4
 }

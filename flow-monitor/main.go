@@ -113,17 +113,24 @@ func offsetLagFromKafkaConsumerGrp() int {
 	result := string(out)
 	_t := strings.Split(result, "\n")
 
-	totallag := 0
 	//first two lines include \n and header
+	totallag := 0
 	for _, t := range _t[2:] {
 		if strings.TrimSpace(t) == "" {
 			continue
 		}
-		lag, err := strconv.Atoi(strings.TrimSpace(t[59:75]))
+		seps := strings.Split(t, " ")
+		_tmp := []string{}
+		for _, sep := range seps {
+			if strings.TrimSpace(sep) != "" {
+				_tmp = append(_tmp, sep)
+			}
+		}
+
+		lag, err := strconv.Atoi(strings.TrimSpace(_tmp[4]))
 		totallag += lag
 		if err != nil {
-			fmt.Println(t)
-			fmt.Println(err)
+			log.Fatalln(err)
 		}
 	}
 	return totallag
