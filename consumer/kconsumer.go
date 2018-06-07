@@ -6,9 +6,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/VimleshS/reactive-services/kconfig"
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
+//KConsumer implements basic functions to spawn and shut a consumer
 type KConsumer struct {
 	name     string
 	consumer *kafka.Consumer
@@ -19,7 +22,7 @@ type KConsumer struct {
 // https://github.com/confluentinc/confluent-kafka-go/issues/65
 func NewKConsumer(name string, group string) *KConsumer {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        "localhost",
+		"bootstrap.servers":        kconfig.Conf.BootStrapServer,
 		"group.id":                 group,
 		"session.timeout.ms":       6000,
 		"go.events.channel.enable": true,
@@ -35,11 +38,13 @@ func NewKConsumer(name string, group string) *KConsumer {
 	return &KConsumer{name: name, consumer: c, stop: make(chan bool)}
 }
 
+//Subs subscribes to a kafka topic
 func (k *KConsumer) Subs(topic string) *KConsumer {
 	k.consumer.SubscribeTopics([]string{topic}, nil)
 	return k
 }
 
+//Consume reads message
 func (k *KConsumer) Consume() {
 	go func() {
 		run := true
@@ -73,6 +78,8 @@ func (k *KConsumer) Consume() {
 	}()
 }
 
+//Stop kills closes consume, note this works properly
+//when auto configure option is set to false
 func (k *KConsumer) Stop() {
 	close(k.stop)
 	err := k.consumer.Close()

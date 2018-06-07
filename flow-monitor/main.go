@@ -79,13 +79,15 @@ func monitorKafka(client pb.KafkaServiceClient) {
 				log.Printf("%s About to remove consumer \n", toRemove)
 				consumer, err := client.KillConsumer(context.Background(), &pb.Consumer{Name: toRemove})
 				if err != nil {
-					panic(err)
+					log.Fatal(err)
 				}
 				executingConsumer = executingConsumer[1:]
 				log.Printf("%s removed consumer \n", consumer.Name)
 			}
 		}
-		time.Sleep(time.Duration(5 * time.Second))
+		time.Sleep(time.Duration(
+			time.Duration(kconfig.Conf.FlowMonitorPollTime) * time.Second),
+		)
 	}
 }
 func pendingMsgExceedLimit(pendingMsg int) bool {
@@ -100,13 +102,10 @@ func consumerBelowThreshhold(nosOfConsumers int) bool {
 	return nosOfConsumers < kconfig.Conf.PartitionSize
 }
 
-//Not finding a elegant way to calculate offset lag and hence using a shell command.
+//TODO: Replace with better algorithm. Not finding a elegant way to
+//calculate offset lag and hence using a shell command.
 func offsetLagFromKafkaConsumerGrp() int {
 	kafkaShPath := path.Join(kconfig.Conf.KafkaPath, "kafka-consumer-groups.sh")
-	// out, err := exec.Command("/home/synerzip/workspace/kafka/kafka_2.11-1.1.0/bin/kafka-consumer-groups.sh",
-	// 	"--bootstrap-server", "localhost:9092", "--group", "g1", "--describe").Output()
-
-	// args := []string{"--bootstrap-server", "localhost:9092", "--group", "g1", "--describe"}
 	out, err := exec.Command(kafkaShPath, kconfig.Conf.BootSevers()...).Output()
 	if err != nil {
 		log.Fatal(err)
