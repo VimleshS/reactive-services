@@ -1,4 +1,4 @@
-## A prototype for reactive Service based on the [talk]((github.com/wmr513/reactive)) given by Mark Rickards at [GIDS18](http://www.developermarch.com/developersummit/presentations.html#devops17)
+## A prototype for reactive Service based on the [talk](https://github.com/wmr513/reactive) given by Mark Rickards at [GIDS18](http://www.developermarch.com/developersummit/presentations.html#devops17)
 
 ### This implementaiton is for self-replicating service depending upon message in a kafka cluster
 
