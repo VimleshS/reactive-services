@@ -19,4 +19,4 @@
 
 
 ### Improvement
-I would like to replace `offsetLagFromKafkaConsumerGrp` routine in `flow-monitor/main.go` with a better logic. But, changes and suggestions are always wellcome to improve this prototype by any means. Please feel free to suggest a change.
+I would like to replace `offsetLagFromKafkaConsumerGrp` routine in `flow-monitor/main.go` with a better logic. But, changes and suggestions are always welcome to improve this prototype by any means. Please feel free to suggest a change.
